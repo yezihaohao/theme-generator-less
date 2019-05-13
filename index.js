@@ -6,6 +6,12 @@ const less = require("less");
 const bundle = require("less-bundle-promise");
 const hash = require("hash.js");
 const NpmImportPlugin = require('less-plugin-npm-import');
+const colorsOnly = require('postcss-colors-only');
+
+// const options = {
+//   withoutGrey: true, // set to true to remove rules that only have grey colors
+//   withoutMonochrome: true, // set to true to remove rules that only have grey, black, or white colors
+// };
 
 let hashCache = "";
 let cssCache = "";
@@ -251,13 +257,14 @@ function generateTheme({
   varFile,
   outputFilePath,
   cssModules = false,
-  themeVariables = ['@primary-color']
+  themeVariables = ['@primary-color'],
+  shadeVariables = ['@primary-color']
 }) {
   return new Promise((resolve, reject) => {
     /*
     Ant Design Specific Files (Change according to your project structure)
     You can even use different less based css framework and create color.less for  that
-  
+
     - antDir - ant design instalation path
     - entry - Ant Design less main file / entry file
     - styles - Ant Design less styles for each component
@@ -317,7 +324,7 @@ function generateTheme({
           css = `.${varName.replace("@", "")} { color: ${color}; }\n ${css}`;
         });
 
-        themeVars.forEach(varName => {
+        shadeVariables.forEach(varName => {
           [1, 2, 3, 4, 5, 7].forEach(key => {
             let name = varName === '@primary-color' ? `@primary-${key}` : `${varName}-${key}`;
             css = `.${name.replace("@", "")} { color: ${getShade(name)}; }\n ${css}`;
@@ -344,11 +351,13 @@ function generateTheme({
               colorsLess
             ];
           })
-          
+
         });
       })
       .then(([css, mappings, colorsLess]) => {
         return postcss([reducePlugin])
+        // return postcss.use(colorsOnly(options))
+          .use(colorsOnly())
           .process(css, {
             parser: less.parser,
             from: entry
